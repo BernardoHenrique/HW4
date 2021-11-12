@@ -8,6 +8,9 @@ from scipy.io import arff
 from sklearn.cluster import KMeans
 import numpy as np
 from sklearn.metrics import silhouette_score
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import mutual_info_classif
+import matplotlib.pyplot as plt
 
 def getDataToMatrix(lines):
     realLines = []
@@ -41,8 +44,10 @@ def splitData(list):
 
 def main():
     data, res2 = [],[]
-    cluster02, cluster12, cluster03, cluster13, cluster23 = 0,0,0,0,0
+    cluster02, cluster12, cluster03, cluster13, cluster23, cluster05, cluster15, cluster25 = 0,0,0,0,0,0,0,0
     Benign02, malignant02, Benign12, malignant12, Benign03, malignant03, Benign13, malignant13, Benign23, malignant23 = 0,0,0,0,0,0,0,0,0,0
+    Benign05, malignant05, Benign15, malignant15, Benign25, malignant25 = 0,0,0,0,0,0
+    xCluster0, yCluster0, xCluster1, yCluster1, xCluster2, yCluster2 = [],[],[],[],[],[]
     with open("HW3-breast.txt") as f:
         lines = f.readlines()
     for line in lines:
@@ -58,7 +63,6 @@ def main():
     kLabels2 = kMeans2.labels_
     kLabels3 = kMeans3.labels_
 
-    print(trainDataSplit[1])
     for i in range(len(kLabels2)):
         if kLabels2[i] == 0:
             cluster02 += 1
@@ -103,5 +107,61 @@ def main():
     print("Silhouette K = 3")
     print(silhouette_score(trainDataSplit[0], kLabels3))
 
+    #EX5
+
+    decision = SelectKBest(mutual_info_classif, k=2).fit(trainDataSplit[0], trainDataSplit[1])
+    decisionTrainData = decision.transform(trainDataSplit[0])
+
+    kMeans3Ex5 = KMeans(n_clusters=3, random_state=0).fit(decisionTrainData)
+    kLabelsEx5 = kMeans3Ex5.labels_
+
+    for i in range(len(kLabelsEx5)):
+        if kLabelsEx5[i] == 0:
+            cluster05 += 1
+            if trainDataSplit[1][i] == 'malignant':
+                malignant05 += 1
+            else:
+                Benign05 += 1
+        elif kLabelsEx5[i] == 1:
+            cluster15 += 1
+            if trainDataSplit[1][i] == 'malignant':
+                malignant15 += 1
+            else:
+                Benign15 += 1
+        elif kLabelsEx5[i] == 2:
+            cluster25 += 1
+            if trainDataSplit[1][i] == 'malignant':
+                malignant25 += 1
+            else:
+                Benign25 += 1
+
+    ECR5 = (1/3)*((cluster05-max(Benign05,malignant05)) + (cluster15-max(Benign15, malignant15))+ (cluster25-max(Benign25, malignant25)))
+    print("ECR Ex5")
+    print(ECR5)
+    print("Silhouette Ex5")
+    print(silhouette_score(decisionTrainData, kLabelsEx5))
+
+    for i in range(len(kLabelsEx5)):
+        if kLabelsEx5[i] == 0:
+            xCluster0 += [decisionTrainData[i][0]]
+            yCluster0 += [decisionTrainData[i][1]]
+        elif kLabelsEx5[i] == 1:
+            xCluster1 += [decisionTrainData[i][0]]
+            yCluster1 += [decisionTrainData[i][1]]
+        else:
+            xCluster2 += [decisionTrainData[i][0]]
+            yCluster2 += [decisionTrainData[i][1]]
+
+    plt.scatter(xCluster0, yCluster0, label="Cluster 0")
+    plt.scatter(xCluster1, yCluster1, label="Cluster 1")
+    plt.scatter(xCluster2, yCluster2, label="Cluster 2")
+
+    plt.xlabel('x - BestFeature1')
+    plt.ylabel('y - BestFeature2')
+    plt.title('Cluster solution with k=3 and 2 K best features')
+
+    # show a legend on the plot
+    plt.legend()
+    plt.show()
 
 main()
